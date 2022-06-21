@@ -11,6 +11,7 @@ import json
 
 
 
+
 def getEloHistory(fide_id : int):
     """ 
         Takes the FIDE id of the player and returns a list containing monthly elos and the number of games
@@ -61,16 +62,16 @@ def getPlayerInfo(fide_id : int):
 
     profile = soup.find_all('div', class_ = 'profile-top-info__block__row__data')
     rank_table = soup.find_all('table', class_='profile-table profile-table_offset_3')
-
+    ranked = len(rank_table) > 2
     info = {
 
         'federation': profile[1].get_text().replace('\xa0', ''),
         'birth_year': int(profile[3].get_text().replace('\xa0', '')),
         'sex': profile[4].get_text().replace('\xa0', ''),
         'title': profile[5].get_text().replace('\xa0', '').replace('None', ''),
-        'world_rank': int(rank_table[1].find_all('tr')[2].find_all('td')[1].get_text()),
-        'continental_rank': int(rank_table[3].find_all('tr')[2].find_all('td')[1].get_text()),
-        'national_rank': int(rank_table[3].find_all('tr')[2].find_all('td')[1].get_text()),
+        'world_rank': int(rank_table[1].find_all('tr')[2].find_all('td')[1].get_text()) if ranked else None,
+        'continental_rank': int(rank_table[3].find_all('tr')[2].find_all('td')[1].get_text()) if ranked else None,
+        'national_rank': int(rank_table[3].find_all('tr')[2].find_all('td')[1].get_text()) if ranked else None,
 
     }
 
@@ -83,6 +84,9 @@ def getGamesHistory(fide_id : int, period : str, time_control : int):
     driver = webdriver.Chrome('C:/chromedriver.exe', options=browser_options)
     driver.get(url)
 
+    calc_tables = driver.find_elements_by_class_name('calc_table')
+    if not calc_tables:
+        return []
     calc_table = driver.find_elements_by_class_name('calc_table')[0]
 
     rows = calc_table.find_elements_by_tag_name('tr')
@@ -122,8 +126,9 @@ def getGamesHistory(fide_id : int, period : str, time_control : int):
                     'opponent_name':  td[0].get_attribute('innerText').replace('\xa0', '')[1:],
                     'opponent_elo': int(td[3].get_attribute('innerText').replace('\xa0', '').replace(' *', '')),
                     'result': float(td[5].get_attribute('innerText').replace('\xa0', '')),
-                    'K': int(td[8].get_attribute('innerText').replace('\xa0', '')),
-                    'change':  round(float(td[9].get_attribute('innerText').replace('\xa0', '')), 3)
+                    'K': int(td[8].get_attribute('innerText').replace('\xa0', '')) if td[8].get_attribute('innerText').replace('\xa0', '') else 0,
+                    'change':  round(float(td[9].get_attribute('innerText').replace('\xa0', '')), 3),
+                    'color': 'white' if 'wh' in td[0].find_element_by_tag_name('img').get_attribute('src') else 'black',
 
                 }
 
@@ -163,7 +168,7 @@ def getGamesHistory(fide_id : int, period : str, time_control : int):
 # print(json.dumps(getPlayerInfo(651077493), indent=4))
 # print(json.dumps(getEloHistory(651077493), indent=4))
 
-# print(json.dumps(getGamesHistory(651077493, '2022-06-01', 0), indent = 4))
+#print(json.dumps(getGamesHistory(651077493, '2022-06-01', 0), indent = 4))
 
 
 
